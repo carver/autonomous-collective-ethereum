@@ -1,0 +1,18 @@
+<!doctype>
+<html>
+<head>
+<script type='text/javascript'>
+	function showNickname() {
+		document.getElementById('nextMessageIdx').innerText = web3.toAscii(contracts['Chat'].contract.nicknames('0x06400992be45bc64a52b5c55d3df84596d6cb4a1'))
+	}
+</script>
+</head>
+<body bgcolor='#E6E6FA'>
+	<h3>Info</h3>
+<div>
+Next Message Idx:
+	<input value='refresh' type='button' id='query' onclick="showNickname()" />
+	<div id='nextMessageIdx'></div>
+</div>
+</body>
+</html>
