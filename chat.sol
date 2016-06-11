@@ -11,26 +11,24 @@ contract Chat {
     }
     PriceList activationPrice;
     PriceList speechPrice;
-    mapping(address => bool) isSpeaker;
+    mapping(address => bool) public isSpeaker;
     
     struct Message {
         address sender;
         bytes32 text;
     }
-    Message[5] public messages; // a ring buffer of recent messages (clients need to store history)
+    Message[] public messages; // a ring buffer of recent messages (clients need to store history)
     uint public nextMessageIdx = 0;
+    uint8 public messageBufferSize;
     
     mapping(address => bytes32) public nicknames;
-	bytes32 lastNick;
     
-    function Chat(uint initActivationPrice, uint initSpeechPrice) {
+    function Chat(uint initActivationPrice, uint initSpeechPrice, uint8 _messageBufferSize) {
         king = msg.sender;
         activationPrice.global = initActivationPrice;
         speechPrice.global = initSpeechPrice;
-    }
-
-    function kill() {
-        selfdestruct(king);
+        messages.length = _messageBufferSize;
+        messageBufferSize = _messageBufferSize;
     }
 
     // tried to pass in PriceList here, but solidity wouldn't let me access a
@@ -59,11 +57,26 @@ contract Chat {
         _
     }
     
+    /*
+    Bailing on this function, it's giving me an error: "Type is required to live outside storage"
+    This may be a bug, according to: http://ethereum.stackexchange.com/questions/983/how-to-pass-struct-mappings-to-solidity-functions
+    Manually repeating for new (holds nose)
+    function getPersonalPrice(uint global, mapping(address=>uint) personal, address forMember) internal returns (uint price) {
+        price = personal[forMember];
+        if (price == 0) {
+            price = global;
+        }
+    }
+    */
+
     // a person must be activated to:
     // * be assigned a name
     // * speak
     // * become an executive officer for the week
     function activate() costs(activationPrice.global, activationPrice.personal) {
+        if (isSpeaker[msg.sender]) {
+            throw; // reverse the charge if sender is already activated
+        }
         isSpeaker[msg.sender] = true;
     }
     
@@ -81,6 +94,10 @@ contract Chat {
         }
         _
     }
+
+    function kill() isKing {
+        selfdestruct(king);
+    }
     
     function setNickname(address speaker, bytes32 nick) isKing {
         if (!isSpeaker[speaker]) {
@@ -88,7 +105,6 @@ contract Chat {
         }
         
         nicknames[speaker] = nick;
-		lastNick = nick;
     }
     
     function deleteNickname(address speaker) isKing {
@@ -99,6 +115,14 @@ contract Chat {
         activationPrice.global = price;
     }
     
+    function getActivationPrice(address forAccount) constant returns (uint price) {
+        price = activationPrice.personal[forAccount];
+        if (price == 0) {
+            price = activationPrice.global;
+        }
+        //return getPersonalPrice(activationPrice.global, activationPrice.personal, forAccount);
+    }
+
     function setDefaultSpeechPrice(uint price) isKing {
         speechPrice.global = price;
     }
@@ -111,6 +135,13 @@ contract Chat {
         speechPrice.personal[speaker] = price;
     }
     
+    function getSpeechPrice(address forAccount) constant returns (uint price) {
+        price = speechPrice.personal[forAccount];
+        if (price == 0) {
+            price = speechPrice.global;
+        }
+    }
+
     function deletePersonalSpeechPrice(address speaker) isKing {
         delete speechPrice.personal[speaker];
     }

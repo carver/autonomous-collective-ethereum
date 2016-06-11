@@ -1,18 +1,80 @@
 <!doctype>
 <html>
 <head>
+<script src="web3.min.js"></script>
 <script type='text/javascript'>
+    if (typeof web3 == 'undefined') {
+        // set the provider you want from Web3.providers
+        web3 = new Web3(new Web3.providers.HttpProvider("http://localhost:8545"));
+    }
+</script>
+<script type='text/javascript'>
+	web3.eth.defaultAccount = web3.eth.accounts[0];
+	var Chat = contracts['Chat'].contract;
+	var EMPTY_ADDR = '0x0000000000000000000000000000000000000000';
+	var EMPTY_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
 	function showNickname() {
 		document.getElementById('nextMessageIdx').innerText = web3.toAscii(contracts['Chat'].contract.nicknames('0x06400992be45bc64a52b5c55d3df84596d6cb4a1'))
 	}
+	function setNickname() {
+		var addr = document.getElementById('nickAddress').value;
+		var nick = document.getElementById('newNick').value;
+		Chat.setNickname(addr, nick);
+	}
+	function sendMessage(speaker) {
+		if (!Chat.isSpeaker(speaker)) {
+			Chat.activate();
+		}
+		var speechPrice = Chat.getSpeechPrice(web3.eth.defaultAccount); //TODO cache price
+		Chat.speak(document.getElementById('newMessage').value, {value: speechPrice, gas: 500000});
+	}
+	function rebuildRoom() {
+		//this has a couple bugs, like not showing the message at the end of the array and on first load, it skips messages
+		//	higher than nextMsgIdx
+		//It's also super slow. maybe just because the IDE?
+		var nextMsgIdx = Chat.nextMessageIdx();
+		var bufferSize = Chat.messageBufferSize();
+		for (var i=0; i<bufferSize; i++) {
+			var msg = Chat.messages(i);
+			if (msg[0] == EMPTY_ADDR) {
+				//skip empty messages
+				continue;
+			}
+			var speaker = Chat.nicknames(msg[0]);
+			if (speaker == EMPTY_BYTES32) {
+				//no nickname found
+				speaker = msg[0];
+			}
+			else {
+				speaker = web3.toAscii(speaker);
+			}
+			document.getElementById('msg'+i).innerText = speaker + ": " + web3.toAscii(msg[1]);
+		}
+	}
+	web3.eth.filter('latest', function() { rebuildRoom(); }); //TODO: add filter to only refresh when needed
 </script>
 </head>
 <body bgcolor='#E6E6FA'>
-	<h3>Info</h3>
+	<h3>Chat</h3>
 <div>
-Next Message Idx:
-	<input value='refresh' type='button' id='query' onclick="showNickname()" />
-	<div id='nextMessageIdx'></div>
+	Send Message:
+	<!-- TODO: deal with trimming this to 32 bytes (maybe two-byte chars count as one in the html spec for maxlength?) -->
+	<input id="newMessage" maxlength="32" /> <button onclick="sendMessage(web3.eth.defaultAccount)">Send</button>
+</div>
+<div>
+	Set Nickname:
+	<!-- TODO: deal with trimming this to 32 bytes (maybe two-byte chars count as one in the html spec for maxlength?) -->
+	<input id="nickAddress" maxlength="42" /> <input id="newNick" maxlength="32" /> <button onclick="setNickname()">Set</button>
+</div>
+<div id="room">
+	<button onclick="rebuildRoom()">refresh</button>
+	<!-- there should be as many divs as there are elements of the messages array in the Chat contract -->
+	<div id="msg0" class="message" ></div>
+	<div id="msg1" class="message" ></div>
+	<div id="msg2" class="message" ></div>
+	<div id="msg3" class="message" ></div>
+	<div id="msg4" class="message" ></div>
 </div>
 </body>
 </html>
