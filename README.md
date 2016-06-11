@@ -22,6 +22,6 @@ For now, only the chat is undergoing implementation, with a "king" address that 
 The chat is much too slow to execute in Mix, the IDE. For any significant testing, deploy locally with:
 
 1. In Mix: `Deploy -> Deploy to Network` - follow all the instructions
-2. cp $WEB3-UMBRELLA/web3.js/build/web3.min.js $THIS_REPO/package/www/.
+2. `cp $WEBTHREE-UMBRELLA/web3.js/dist/web3.min.js $THIS_REPO/package/www/.`
 3. in $THIS_REPO/package/www/index.html move the deployment.js script import below the web3.js import and initialization (this import is a workaround until the mist browser is generally available)
 4. in $THIS_REPO/package/www run `python -m SimpleHTTPServer` (assuming python 2.*)
