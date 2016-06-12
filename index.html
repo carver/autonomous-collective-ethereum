@@ -10,6 +10,8 @@
 </script>
 <script type='text/javascript'>
 	web3.eth.defaultAccount = web3.eth.accounts[0];
+	web3.eth.defaultBlock = "pending"; //we'd rather see chat messages before the block is sealed. TODO: review negative security implications
+
 	var Chat = contracts['Chat'].contract;
 	var EMPTY_ADDR = '0x0000000000000000000000000000000000000000';
 	var EMPTY_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -52,7 +54,7 @@
 			document.getElementById('msg'+i).innerText = speaker + ": " + web3.toAscii(msg[1]);
 		}
 	}
-	web3.eth.filter('latest', function() { rebuildRoom(); }); //TODO: add filter to only refresh when needed
+	web3.eth.filter('pending', function() { rebuildRoom(); }); //TODO: add filter to only refresh when needed
 </script>
 </head>
 <body bgcolor='#E6E6FA'>
