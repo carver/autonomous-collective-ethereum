@@ -51,7 +51,9 @@
 			else {
 				speaker = web3.toAscii(speaker);
 			}
-			document.getElementById('msg'+i).innerText = speaker + ": " + web3.toAscii(msg[1]);
+			var unixTimestamp = parseInt(msg[1]+"000"); //integer in milliseconds
+			var timestamp = new Date(unixTimestamp).toLocaleString();
+			document.getElementById('msg'+i).innerText = speaker + "(" + timestamp + "): " + web3.toAscii(msg[2]);
 		}
 	}
 	web3.eth.filter('pending', function() { rebuildRoom(); }); //TODO: add filter to only refresh when needed

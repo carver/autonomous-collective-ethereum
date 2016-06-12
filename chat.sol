@@ -15,6 +15,7 @@ contract Chat {
     
     struct Message {
         address sender;
+        uint timestamp;
         bytes32 text;
     }
     Message[] public messages; // a ring buffer of recent messages (clients need to store history)
@@ -83,6 +84,7 @@ contract Chat {
     function speak(bytes32 text) costs(speechPrice.global, speechPrice.personal) activated {
         messages[nextMessageIdx].text = text;
         messages[nextMessageIdx].sender = msg.sender;
+        messages[nextMessageIdx].timestamp = now;
         nextMessageIdx = (nextMessageIdx + 1) % messages.length;
     }
     
