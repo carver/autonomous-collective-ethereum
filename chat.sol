@@ -1,49 +1,49 @@
 contract AutonomousCollective {
-	address public executiveOfficer; //for the week
-	enum Proposed { NewActivationPrice, NewSpeechPrice, NewNickname }
-	struct Proposal {
-		address proposer;
-		Proposed action;
-		address target; // empty target has meaning, like an empty target on a new speech price means a new global speech price
-		bool executed;
-		bytes32 payload; //this will be the new nickname for the NewNickname proposal, for example
-	}
-	Proposal[] proposals;
-	uint nextProposalIdx;
-	uint maxProposals;
-	Chat chat;
+    address public executiveOfficer; //for the week
+    enum Proposed { NewActivationPrice, NewSpeechPrice, NewNickname }
+    struct Proposal {
+        address proposer;
+        Proposed action;
+        address target; // empty target has meaning, like an empty target on a new speech price means a new global speech price
+        bool executed;
+        bytes32 payload; //this will be the new nickname for the NewNickname proposal, for example
+    }
+    Proposal[] proposals;
+    uint nextProposalIdx;
+    uint maxProposals;
+    Chat chat;
 
-	function AutonomousCollective(uint _maxProposals) {
-		executiveOfficer = msg.sender;
-		maxProposals = _maxProposals;
-		proposals.length = _maxProposals;
-		chat = new Chat(1000 wei, 100 wei, 10);
-	}
+    function AutonomousCollective(uint _maxProposals) {
+        executiveOfficer = msg.sender;
+        maxProposals = _maxProposals;
+        proposals.length = _maxProposals;
+        chat = new Chat(1000 wei, 100 wei, 10);
+    }
 
-	modifier isExecutiveOfficer {
-		if (msg.sender != executiveOfficer) {
-			throw; // only the executive officer for the week can make proposals
-		}
-		_
-	}
+    modifier isExecutiveOfficer {
+        if (msg.sender != executiveOfficer) {
+            throw; // only the executive officer for the week can make proposals
+        }
+        _
+    }
 
-	function makeProposal(Proposed action, address target, bytes32 payload) isExecutiveOfficer {
-		proposals[nextProposalIdx] = Proposal(msg.sender, action, target, false, payload);
-		nextProposalIdx = (nextProposalIdx + 1) % maxProposals;
-	}
+    function makeProposal(Proposed action, address target, bytes32 payload) isExecutiveOfficer {
+        proposals[nextProposalIdx] = Proposal(msg.sender, action, target, false, payload);
+        nextProposalIdx = (nextProposalIdx + 1) % maxProposals;
+    }
 
-	function executeProposal(uint index) {
-		Proposal proposal = proposals[index];
-		if (proposal.executed) {
-			throw; // don't execute the same proposal twice
-		}
-		if (proposal.action == Proposed.NewNickname) {
-			chat.setNickname(proposal.target, proposal.payload);
-		}
-		else {
-			throw; //TODO proposal not implemented
-		}
-	}
+    function executeProposal(uint index) {
+        Proposal proposal = proposals[index];
+        if (proposal.executed) {
+            throw; // don't execute the same proposal twice
+        }
+        if (proposal.action == Proposed.NewNickname) {
+            chat.setNickname(proposal.target, proposal.payload);
+        }
+        else {
+            throw; //TODO proposal not implemented
+        }
+    }
 }
 
 contract Chat {
@@ -92,10 +92,15 @@ contract Chat {
             throw;
         }
         else if (msg.value > price) {
-            msg.sender.send(msg.value - price); //return over-payment
+            // with all the send-based security concerns, it feels safer to throw in the case of overpayment rather than send back the change
+            //    consider re-enabling for convenience:
+            //    msg.sender.send(msg.value - price); //return over-payment
+            throw;
         }
         
-        king.send(msg.value);
+        if (!king.send(msg.value)) {
+            throw;
+        }
         _
     }
     
@@ -109,7 +114,7 @@ contract Chat {
     /*
     Bailing on this function, it's giving me an error: "Type is required to live outside storage"
     This may be a bug, according to: http://ethereum.stackexchange.com/questions/983/how-to-pass-struct-mappings-to-solidity-functions
-    Manually repeating for new (holds nose)
+    Manually repeating for now (holds nose)
     function getPersonalPrice(uint global, mapping(address=>uint) personal, address forMember) internal returns (uint price) {
         price = personal[forMember];
         if (price == 0) {
@@ -198,7 +203,9 @@ contract Chat {
     
     // fallbacks
     function collect() {
-        king.send(this.balance);
+        if(!king.send(this.balance)) {
+            throw;
+        }
     }
 }
 
