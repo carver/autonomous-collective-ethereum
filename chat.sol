@@ -47,12 +47,12 @@ contract AutonomousCollective {
 }
 
 contract Chat {
-    
+
     // The king address has full rights to change prices, nicknames, etc.
     // The intention is that the address is a contract with rules governing changes
     // This address also collects all revenue immediately.
     address public king;
-    
+
     struct PriceList {
         uint global;
         mapping(address => uint) personal;
@@ -60,7 +60,7 @@ contract Chat {
     PriceList activationPrice;
     PriceList speechPrice;
     mapping(address => bool) public isSpeaker;
-    
+
     struct Message {
         address sender;
         uint timestamp;
@@ -69,9 +69,9 @@ contract Chat {
     Message[] public messages; // a ring buffer of recent messages (clients need to store history)
     uint public nextMessageIdx = 0;
     uint8 public messageBufferSize;
-    
+
     mapping(address => bytes32) public nicknames;
-    
+
     function Chat(uint initActivationPrice, uint initSpeechPrice, uint8 _messageBufferSize) {
         king = msg.sender;
         activationPrice.global = initActivationPrice;
@@ -87,7 +87,7 @@ contract Chat {
         if (price == 0) {
             price = global;
         }
-        
+
         if (msg.value < price) {
             throw;
         }
@@ -97,20 +97,20 @@ contract Chat {
             //    msg.sender.send(msg.value - price); //return over-payment
             throw;
         }
-        
+
         if (!king.send(msg.value)) {
             throw;
         }
         _
     }
-    
+
     modifier activated() {
         if (!isSpeaker[msg.sender]) {
             throw;
         }
         _
     }
-    
+
     /*
     Bailing on this function, it's giving me an error: "Type is required to live outside storage"
     This may be a bug, according to: http://ethereum.stackexchange.com/questions/983/how-to-pass-struct-mappings-to-solidity-functions
@@ -133,16 +133,16 @@ contract Chat {
         }
         isSpeaker[msg.sender] = true;
     }
-    
+
     function speak(bytes32 text) costs(speechPrice.global, speechPrice.personal) activated {
         messages[nextMessageIdx].text = text;
         messages[nextMessageIdx].sender = msg.sender;
         messages[nextMessageIdx].timestamp = now;
         nextMessageIdx = (nextMessageIdx + 1) % messages.length;
     }
-    
+
     // ********* Modify locked-down parameters **********
-    
+
     modifier isKing() {
         if (msg.sender != king) {
             throw;
@@ -153,28 +153,28 @@ contract Chat {
     function kill() isKing {
         selfdestruct(king);
     }
-    
+
     // Transfer ownership of contract to new address
     function crown(address newKing) isKing {
         king = newKing;
     }
-    
+
     function setNickname(address speaker, bytes32 nick) isKing {
         if (!isSpeaker[speaker]) {
             throw;
         }
-        
+
         nicknames[speaker] = nick;
     }
-    
+
     function deleteNickname(address speaker) isKing {
         delete nicknames[speaker];
     }
-    
+
     function setDefaultActivationPrice(uint price) isKing {
         activationPrice.global = price;
     }
-    
+
     function getActivationPrice(address forAccount) constant returns (uint price) {
         price = activationPrice.personal[forAccount];
         if (price == 0) {
@@ -186,15 +186,15 @@ contract Chat {
     function setDefaultSpeechPrice(uint price) isKing {
         speechPrice.global = price;
     }
-    
+
     function setPersonalSpeechPrice(address speaker, uint price) isKing {
         if (!isSpeaker[speaker]) {
             throw;
         }
-        
+
         speechPrice.personal[speaker] = price;
     }
-    
+
     function getSpeechPrice(address forAccount) constant returns (uint price) {
         price = speechPrice.personal[forAccount];
         if (price == 0) {
@@ -205,7 +205,7 @@ contract Chat {
     function deletePersonalSpeechPrice(address speaker) isKing {
         delete speechPrice.personal[speaker];
     }
-    
+
     // fallbacks
     function collect() {
         if(!king.send(this.balance)) {
