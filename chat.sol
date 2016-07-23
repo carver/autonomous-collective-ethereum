@@ -13,11 +13,11 @@ contract AutonomousCollective {
     uint maxProposals;
     Chat chat;
 
-    function AutonomousCollective(uint _maxProposals) {
+    function AutonomousCollective(uint _maxProposals, address _chat) {
         executiveOfficer = msg.sender;
         maxProposals = _maxProposals;
         proposals.length = _maxProposals;
-        chat = new Chat(1000 wei, 100 wei, 10);
+        chat = Chat(_chat); // the king of the chat still has to manually transfer ownership in another transaction
     }
 
     modifier isExecutiveOfficer {
@@ -152,6 +152,11 @@ contract Chat {
 
     function kill() isKing {
         selfdestruct(king);
+    }
+    
+    // Transfer ownership of contract to new address
+    function crown(address newKing) isKing {
+        king = newKing;
     }
     
     function setNickname(address speaker, bytes32 nick) isKing {
