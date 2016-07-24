@@ -13,16 +13,26 @@
 	web3.eth.defaultBlock = "pending"; //we'd rather see chat messages before the block is sealed. TODO: review negative security implications
 
 	var Chat = contracts['Chat'].contract;
+	var Collective = contracts['AutonomousCollective'].contract;
+	Collective.Proposed = { NewActivationPrice:0, NewSpeechPrice:1, NewNickname:2 };
 	var EMPTY_ADDR = '0x0000000000000000000000000000000000000000';
 	var EMPTY_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 
 	function showNickname() {
 		document.getElementById('nextMessageIdx').innerText = web3.toAscii(contracts['Chat'].contract.nicknames('0x06400992be45bc64a52b5c55d3df84596d6cb4a1'))
 	}
+	function lastProposal() {
+		var last = Collective.nextProposalIdx() - 1;
+		if (last < 0) last += Collective.maxProposals();
+		return last;
+	}
 	function setNickname() {
 		var addr = document.getElementById('nickAddress').value;
 		var nick = document.getElementById('newNick').value;
-		Chat.setNickname(addr, nick);
+		Collective.makeProposal(Collective.Proposed.NewNickname, addr, nick, {gas:500000});
+		Collective.executeProposal(lastProposal());
+		//Running these in quick succession doesn't seem to work, maybe because the nextProposalIdx() hasn't updated yet
+		//Re-run it manually for now
 	}
 	function sendMessage(speaker) {
 		if (!Chat.isSpeaker(speaker)) {

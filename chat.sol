@@ -8,10 +8,10 @@ contract AutonomousCollective {
         bool executed;
         bytes32 payload; //this will be the new nickname for the NewNickname proposal, for example
     }
-    Proposal[] proposals;
-    uint nextProposalIdx;
-    uint maxProposals;
-    Chat chat;
+    Proposal[] public proposals;
+    uint public nextProposalIdx;
+    uint public maxProposals;
+    Chat public chat;
 
     function AutonomousCollective(uint _maxProposals, address _chat) {
         executiveOfficer = msg.sender;
@@ -33,15 +33,24 @@ contract AutonomousCollective {
     }
 
     function executeProposal(uint index) {
+        //TODO check for member ratification
         Proposal proposal = proposals[index];
         if (proposal.executed) {
             throw; // don't execute the same proposal twice
         }
         if (proposal.action == Proposed.NewNickname) {
             chat.setNickname(proposal.target, proposal.payload);
+            proposal.executed = true;
         }
         else {
             throw; //TODO proposal not implemented
+        }
+    }
+
+    function setChat(address newChat) {
+        //TODO: test that the 0x0 address filter works as intended
+        if (address(chat) == 0x0) {
+            chat = Chat(newChat);
         }
     }
 }
